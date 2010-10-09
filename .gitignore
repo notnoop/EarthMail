@@ -1,0 +1,27 @@
+# sbt files
+lib_managed
+bin
+boot
+target
+src_managed
+project/plugins/project
+
+# Eclipse
+.project
+.classpath
+.metadata
+.scala_dependencies
+
+# random files
+*~
+.#*
+TAGS
+tags
+*.swp
+.DS_Store
+
+# random script files
+MyTest.scala
+
+# Generated files
+logs
