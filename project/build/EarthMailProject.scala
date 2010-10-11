@@ -49,7 +49,7 @@ AkkaProject {
   val h2 = "com.h2database" % "h2" % "1.2.143" % "test"
 
   // Utilities
-  val configgy = "net.lag" % "configgy" % "1.5"
+  val configgy = "net.lag" % "configgy" % "2.8.0-1.5.5"
   val scalatest = "org.scalatest" % "scalatest" % "1.2"
 }
 

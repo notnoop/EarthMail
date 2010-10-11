@@ -35,7 +35,9 @@ import java.sql.Timestamp
 import org.squeryl.Session
 import org.squeryl.PrimitiveTypeMode._
 
-class EarthMailApi {
+import com.notnoop.apns.ApnsService
+
+class EarthMailApi(apns: Option[ApnsService]) {
   val library = Library
 
   def generatePassword = "NewPassword"

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+          "http://java.sun.com/dtd/web-app_2_4.dtd">
+
+<web-app>
+  <listener>
+    <listener-class>se.scalablesolutions.akka.servlet.Initializer</listener-class>
+  </listener>
+
+  <servlet>
+    <servlet-name>Akka</servlet-name>
+    <!-- Both Comet + REST -->
+    <servlet-class>se.scalablesolutions.akka.comet.AkkaServlet</servlet-class>
+    <!-- Or if you don't want to use comet, but only REST -->
+    <!--    <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class> -->
+    <!-- And you want to configure your services -->
+
+    <init-param>
+        <param-name>com.sun.jersey.config.property.resourceConfigClass</param-name>
+        <param-value>com.sun.jersey.api.core.PackagesResourceConfig</param-value>
+    </init-param>
+
+    <init-param>
+        <param-name>com.sun.jersey.config.property.packages</param-name>
+        <param-value>com.notnoop.earthmail.http</param-value>
+    </init-param>
+
+  <init-param>
+    <param-name>cometSupport</param-name>
+    <param-value>org.atmosphere.container.Jetty7CometSupport</param-value>
+  </init-param>
+
+  </servlet>
+  <servlet-mapping>
+      <url-pattern>/*</url-pattern>
+   <servlet-name>Akka</servlet-name>
+  </servlet-mapping>
+</web-app>

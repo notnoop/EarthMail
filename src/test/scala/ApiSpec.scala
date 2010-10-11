@@ -41,7 +41,7 @@ import org.scalatest.matchers.ShouldMatchers
 class ApiSpec extends Spec with ShouldMatchers with SessionSetting {
   import Library._
 
-  val api = new EarthMailApi
+  val api = new EarthMailApi(None)
   var user : User = _
 
   override def beforeEach = {
