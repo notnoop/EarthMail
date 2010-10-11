@@ -35,33 +35,16 @@ import com.notnoop.earthmail.EarthMailApi
 
 import java.sql.Timestamp
 
-import se.scalablesolutions.akka.actor.{Transactor, SupervisorFactory, Actor}
+import se.scalablesolutions.akka.actor.Actor
 import se.scalablesolutions.akka.actor.Actor._
-import se.scalablesolutions.akka.stm.TransactionalMap
-import se.scalablesolutions.akka.config.ScalaConfig._
-import se.scalablesolutions.akka.util.Logging
-import se.scalablesolutions.akka.comet.AkkaClusterBroadcastFilter
 import se.scalablesolutions.akka.serialization.Serializer
 import scala.xml.NodeSeq
 
-import javax.ws.rs.{GET, POST, PUT, DELETE, Path, Produces,
-WebApplicationException, Consumes,PathParam, QueryParam}
+import javax.ws.rs._
 import javax.ws.rs.core.MediaType
 import se.scalablesolutions.akka.actor.ActorRegistry.actorFor
 
 import com.notnoop.apns._
-
-class Boot {
-  val factory = SupervisorFactory(
-    SupervisorConfig(
-      RestartStrategy(OneForOne, 3, 100,List(classOf[Exception])),
-      Supervise(
-        actorOf[SimpleServiceActor],
-        LifeCycle(Permanent)) ::
-      Nil))
-  factory.newInstance.start
-}
-
 
 @Path("/api/")
 @Produces(Array(MediaType.APPLICATION_JSON))
@@ -125,14 +108,14 @@ class User {
   def retrieveMessages(@QueryParam("since") sinceMessage: Int) = {
     "Retrieve Messages: " + userId + " since " + sinceMessage
   }
+
+  @Path("/messages/message/{message_id: [0-9]+}/")
+  def retrieveMessage(@PathParam("message_id") messageId: Long) =
+    new UserMessage(userId, messageId)
 }
 
-@Path("/api/user/{user_id: [0-9]+}/messages/message/{message_id: [0-9]+}")
 @Produces(Array(MediaType.APPLICATION_JSON))
-class UserMessage {
-
-  @PathParam("user_id") var userId: Long = _
-  @PathParam("message_id") var messageId: Long = _
+class UserMessage(val userId: Long, val messageId: Long) {
 
   @GET
   @Path("/")
