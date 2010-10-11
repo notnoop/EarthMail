@@ -28,29 +28,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-import sbt._
+package com.notnoop.earthmail
 
-class BlasterProject(info: ProjectInfo) extends DefaultWebProject(info) with
-AkkaProject {
-  val rest = akkaModule("http")
+import org.squeryl._
+import PrimitiveTypeMode._
 
+import java.sql.Timestamp
 
-//  val jetty6 = "org.mortbay.jetty" % "jetty" % "6.1.14" % "test"  // jetty is only need for testing
-  val jettyVersion = "7.0.2.v20100331"
-  val jetty_webapp = "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "test"
-  val jetty_server  = "org.eclipse.jetty"  % "jetty-server" % jettyVersion % "test"
+class User(
+  var password: String,
+  var alias: Option[String],
+//  var tags: List[String],
+  val udid: String,
+  var deviceTokens: String
+) extends KeyedEntity[Long] {
+  val id: Long = 0
 
-  // Push notification
-  val notnoop_repo = "Notnoop Repo" at "http://notnoop.github.com/m2-repo"
-  val java_apns = "com.notnoop.apns" % "apns" % "0.1.5"
+  def this() = this("", Some(""), "", "")
 
-  // Persistence
-  val squeryl = "org.squeryl" %% "squeryl" % "0.9.4-RC2"
-  val h2 = "com.h2database" % "h2" % "1.2.143" % "test"
-
-  // Utilities
-  val configgy = "net.lag" % "configgy" % "1.5"
-  val scalatest = "org.scalatest" % "scalatest" % "1.2"
+  lazy val messages = Library.messagesToUsers.left(this)
 }
 
+class Message(
+  val title: String,
+  val message: String,
+  val sender: Long,
 
+  val tags: List[String],
+  val users: List[Long],
+  val aliases: List[String],
+
+  val push: String,
+  val extra: Map[String, String],
+
+  val sentAt: Timestamp
+) extends KeyedEntity[Long] {
+  val id: Long = 0
+}
+
+class UserInbox(
+  val user_id: Long,
+  val message_id: Long,
+
+  var read: Boolean
+) extends KeyedEntity[dsl.CompositeKey2[Long,Long]] {
+  def id = compositeKey(user_id, message_id)
+}
+
+object Library extends Schema {
+  val users = table[User]
+  val messages = table[Message]
+
+  val messagesToUsers =
+    manyToManyRelation(users, messages).
+  via[UserInbox]((u, m, ui) => (u.id === ui.user_id, m.id === ui.message_id))
+
+  override def drop = super.drop
+}

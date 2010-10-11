@@ -28,29 +28,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-import sbt._
+package com.notnoop.earthmail
 
-class BlasterProject(info: ProjectInfo) extends DefaultWebProject(info) with
-AkkaProject {
-  val rest = akkaModule("http")
+import org.squeryl._
+import PrimitiveTypeMode._
 
+import java.sql.Timestamp
 
-//  val jetty6 = "org.mortbay.jetty" % "jetty" % "6.1.14" % "test"  // jetty is only need for testing
-  val jettyVersion = "7.0.2.v20100331"
-  val jetty_webapp = "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "test"
-  val jetty_server  = "org.eclipse.jetty"  % "jetty-server" % jettyVersion % "test"
+import org.scalatest.Spec
+import org.scalatest.matchers.ShouldMatchers
 
-  // Push notification
-  val notnoop_repo = "Notnoop Repo" at "http://notnoop.github.com/m2-repo"
-  val java_apns = "com.notnoop.apns" % "apns" % "0.1.5"
+class ModelsSpec extends Spec with ShouldMatchers with SessionSetting {
 
-  // Persistence
-  val squeryl = "org.squeryl" %% "squeryl" % "0.9.4-RC2"
-  val h2 = "com.h2database" % "h2" % "1.2.143" % "test"
+  describe("User") {
+    import Library.users
 
-  // Utilities
-  val configgy = "net.lag" % "configgy" % "1.5"
-  val scalatest = "org.scalatest" % "scalatest" % "1.2"
+    it("(when added to DB) have a valid id") {
+      val user = new User("1234", Some("123"), "udid", "asdf")
+      users.insert(user)
+      user.id should not be(0)
+    }
+
+    it("is searchable by alias") {
+      users.insert(List(
+        new User("123", Some("asdf"), "", ""),
+        new User("321", Some("fdsa"), "", ""),
+        new User("111", None, "", "")
+      ))
+
+      users.where(_.alias === Some("asdf")).single.password should be("123")
+      users.where(_.alias === Some("fdsa")).single.password should be("321")
+    }
+  }
+
+  describe("User Inbox") {
+    import Library._
+
+    it("contains messages of users") {
+      val user = new User("123", Some("asdf"), "", "")
+      users.insert(user)
+
+      user.id should not be(0)
+
+      val message = new Message("Test", "Message", user.id, List(), List(),
+      List(), "", Map(),
+      new java.sql.Timestamp(java.util.Calendar.getInstance().getTime().getTime()))
+      messages.insert(message)
+
+      user.messages.associate(message)
+
+      user.messages.single should be(message)
+    }
+  }
 }
-
 

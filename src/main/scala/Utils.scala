@@ -28,29 +28,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-import sbt._
+package com.notnoop.earthmail
 
-class BlasterProject(info: ProjectInfo) extends DefaultWebProject(info) with
-AkkaProject {
-  val rest = akkaModule("http")
-
-
-//  val jetty6 = "org.mortbay.jetty" % "jetty" % "6.1.14" % "test"  // jetty is only need for testing
-  val jettyVersion = "7.0.2.v20100331"
-  val jetty_webapp = "org.eclipse.jetty" % "jetty-webapp" % jettyVersion % "test"
-  val jetty_server  = "org.eclipse.jetty"  % "jetty-server" % jettyVersion % "test"
-
-  // Push notification
-  val notnoop_repo = "Notnoop Repo" at "http://notnoop.github.com/m2-repo"
-  val java_apns = "com.notnoop.apns" % "apns" % "0.1.5"
-
-  // Persistence
-  val squeryl = "org.squeryl" %% "squeryl" % "0.9.4-RC2"
-  val h2 = "com.h2database" % "h2" % "1.2.143" % "test"
-
-  // Utilities
-  val configgy = "net.lag" % "configgy" % "1.5"
-  val scalatest = "org.scalatest" % "scalatest" % "1.2"
+object Utilities {
+  def currentTimeStamp = new java.sql.Timestamp(System.currentTimeMillis())
 }
-
-
