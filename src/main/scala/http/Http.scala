@@ -175,7 +175,7 @@ class UserMessage(val userId: Long, val messageId: Long) {
   @Path("/body/")
   @Produces(Array(MediaType.TEXT_HTML))
   def retrieveMessageBody() = {
-    <p>Body of Message { messageId } for { userId }</p>
+    handle(GetMessageBody(userId, messageId))
   }
 
   @DELETE
@@ -367,6 +367,17 @@ class SimpleServiceActor extends Actor {
         self.reply(compact(render(item)))
       case None =>
         self.reply(None)
+      }
+    }
+
+  case GetMessageBody(userId, messageId) =>
+    using(session) {
+      val messageAs = api.retrieveMessage(userId, messageId)
+      messageAs match {
+      case Some((message, association)) =>
+        self.reply(<html><body><p>{message.message}</p></body></html>)
+      case None =>
+        self.reply(<html><body><p><em>Not found</em></p></body></html>)
       }
     }
   case MarkMessageAsRead(userId, messageId) =>
