@@ -40,11 +40,12 @@ class User(
   var alias: Option[String],
 //  var tags: List[String],
   val udid: String,
-  var deviceTokens: String
+  var deviceTokens: String,
+  var badge: Int = 0
 ) extends KeyedEntity[Long] {
   val id: Long = 0
 
-  def this() = this("", Some(""), "", "")
+  def this() = this("", Some(""), "", "", 0)
 
   lazy val messages = Library.messagesToUsers.left(this)
 }
@@ -70,6 +71,7 @@ class UserInbox(
   val user_id: Long,
   val message_id: Long,
 
+  @annotations.Column("is_read")
   var read: Boolean
 ) extends KeyedEntity[dsl.CompositeKey2[Long,Long]] {
   def id = compositeKey(user_id, message_id)

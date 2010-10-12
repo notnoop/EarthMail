@@ -51,7 +51,7 @@ class EarthMailApi(apns: Option[ApnsService]) {
       generatePassword,
       alias,
       udid,
-      deviceTokens.head)
+      deviceTokens.headOption getOrElse "")
 
     library.users.insert(user)
     user
@@ -67,9 +67,9 @@ class EarthMailApi(apns: Option[ApnsService]) {
 
       // TODO: Handle tags and device tokens
       set(
-        s.alias := newAlias
+        s.alias := newAlias,
         //s.tags := tags,
-        //s.deviceTokens := deviceTokens
+        s.deviceTokens := deviceTokens.headOption getOrElse ""
       ))
   }
 
@@ -78,6 +78,7 @@ class EarthMailApi(apns: Option[ApnsService]) {
     update(Library.users)(s =>
       where(s.id === userId)
       set(s.password := generatePassword))
+    Library.users.lookup(userId)
   }
 
   def deleteUser(userId: Long) = {
@@ -104,8 +105,11 @@ class EarthMailApi(apns: Option[ApnsService]) {
       "TODO", extras, Utilities.currentTimeStamp)
     Library.messages.insert(msg)
 
-    for (r <- recipients)
+    for (r <- recipients) {
       r.messages.associate(msg)
+      r.badge += 1
+      Library.users.update(r)
+    }
   }
 
   def massMessage(sender: Long,
@@ -114,6 +118,7 @@ class EarthMailApi(apns: Option[ApnsService]) {
     message: String,
     extras: Map[String, String]) {
 
+    transaction {
     val msg = new Message(title, message,
       sender, List(), List(), List(),
       "TODO", extras, Utilities.currentTimeStamp)
@@ -121,42 +126,55 @@ class EarthMailApi(apns: Option[ApnsService]) {
 
     for (r <- Library.users)
       r.messages.associate(msg)
+
+    update(Library.users)(a=> set(a.badge := a.badge.~ + 1))
+    }
+
   }
 
   def retrieveMessages(
     userId: Long,
     messageSince: Option[Long]) = {
 
-    val user = Library.users.where(_.id === userId).single
-    val messages = messageSince match {
-      case Some(l) => user.messages.where(_.id.~ > l)
-      case _ => user.messages
-    }
-
-    messages
+    val associations = Library.users.lookup(userId).map(u =>
+      messageSince match {
+      case Some(l) => u.messages.associationMap.where(_._1.id.~ > l)
+      case _ => u.messages.associationMap
+    })
+    associations
   }
 
 
   def retrieveMessage(userId: Long, messageId: Long) = {
-
-    val user = Library.users.where(_.id === userId).single
-    val message = user.messages.where(_.id === messageId).single
-
-    message
+    Library.users.lookup(userId).map(u =>
+      u.messages.associationMap.where(s => s._1.id === messageId).headOption
+    ) getOrElse None
   }
 
-  def deleteMessage(userId: Long, messageId: Long) = {
-    val user = Library.users.where(_.id === userId).single
-    val message = user.messages.where(_.id === messageId).single
-
-    user.messages.dissociate(message)
+  def deleteMessage(userId: Long, messageId: Long) : Boolean = {
+    Library.users.lookup(userId).map(u => {
+      val message = u.messages.where(s => s.id === messageId).headOption
+      message match {
+        case Some(m) => u.messages.dissociate(m)
+        case _ => false
+      }}) getOrElse false
   }
 
   def markAsRead(userId: Long, messageId: Long) = {
-    update(Library.messagesToUsers)(a =>
-      where(a.user_id === userId and a.message_id === messageId)
-      set(a.read := true)
-    )
+    transaction {
+      update(Library.messagesToUsers)(a =>
+        where(a.user_id === userId and a.message_id === messageId)
+        set(a.read := true)
+      )
+      update(Library.users)(a =>
+        where(a.id === userId)
+        set(a.badge := a.badge.~ - 1)
+      )
+    }
+
   }
 
+  def badgeOf(userId: Long) = {
+    Library.users.lookup(userId).map(_.badge).getOrElse(0)
+  }
 }

@@ -47,10 +47,12 @@ AkkaProject {
   // Persistence
   val squeryl = "org.squeryl" %% "squeryl" % "0.9.4-RC2"
   val h2 = "com.h2database" % "h2" % "1.2.143" % "test"
+  val mysql = "mysql" % "mysql-connector-java" % "5.1.13"
 
   // Utilities
   val configgy = "net.lag" % "configgy" % "2.8.0-1.5.5"
   val scalatest = "org.scalatest" % "scalatest" % "1.2"
+  val lift_json = "net.liftweb" %% "lift-json" % "2.1"
 }
 
 
