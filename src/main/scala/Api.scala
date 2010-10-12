@@ -160,18 +160,44 @@ class EarthMailApi(apns: Option[ApnsService]) {
       }}) getOrElse false
   }
 
+  def bulkDeleteMessages(userId: Long, messageIds: Iterable[Long]) = {
+    transaction {
+      Library.messagesToUsers.deleteWhere(a =>
+        (a.user_id === userId) and
+        (a.message_id in(messageIds)))
+      updateBadge(userId)
+    }
+  }
+
   def markAsRead(userId: Long, messageId: Long) = {
     transaction {
       update(Library.messagesToUsers)(a =>
         where(a.user_id === userId and a.message_id === messageId)
         set(a.read := true)
       )
-      update(Library.users)(a =>
-        where(a.id === userId)
-        set(a.badge := a.badge.~ - 1)
-      )
+      updateBadge(userId)
     }
 
+  }
+
+  def bulkMarkAsRead(userId: Long, messageIds: Iterable[Long]) = {
+    transaction {
+      print("Messages: " + messageIds)
+      update(Library.messagesToUsers)(a =>
+        where((a.user_id === userId) and (a.message_id in(messageIds)))
+        set(a.read := true)
+      )
+      updateBadge(userId)
+    }
+  }
+
+  def updateBadge(userId: Long) = {
+      val n = Library.messagesToUsers.where(a =>
+        (a.user_id === userId) and
+        (a.read === false)).size
+      update(Library.users)(u =>
+        where(u.id === userId)
+        set(u.badge := n))
   }
 
   def badgeOf(userId: Long) = {

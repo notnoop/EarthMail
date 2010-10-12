@@ -127,6 +127,20 @@ class User {
   @Path("/messages/message/{message_id: [0-9]+}/")
   def retrieveMessage(@PathParam("message_id") messageId: Long) =
     new UserMessage(userId, messageId)
+
+  @POST
+  @Path("/messages/unread/")
+  @Consumes(Array(MediaType.APPLICATION_JSON))
+  def markMessagesReadBulk(body: Array[Byte]) = {
+    handle(BulkMarkMessagesAsRead(userId, body))
+  }
+
+  @POST
+  @Path("/messages/delete/")
+  @Consumes(Array(MediaType.APPLICATION_JSON))
+  def deleteMessagesBulk(body: Array[Byte]) = {
+    handle(BulkDeleteMessages(userId, body))
+  }
 }
 
 object ActorHelper {
@@ -184,8 +198,8 @@ object MySession {
     new adapters.MySQLAdapter()
   ))
   using(SessionFactory.concreteFactory.get()) {
-    Library.drop
-    Library.create
+//    Library.drop
+//    Library.create
   }
   val session = SessionFactory.concreteFactory.get()
 }
@@ -241,6 +255,12 @@ class SimpleServiceActor extends Actor {
          ("extra" -> JNull) // TODO
        )
    }
+
+  def extractMessageId(userId: Long, url: String) = {
+    val last = if (url.endsWith("/")) (url.length - 1) else url.length
+    val first = url.lastIndexOf('/', last - 1) + 1
+    url.substring(first, last).toLong
+  }
 
   import MySession.session
 
@@ -354,6 +374,20 @@ class SimpleServiceActor extends Actor {
       api.markAsRead(userId, messageId)
       self.reply("""{"ok":true}""")
     }
+
+  case BulkMarkMessagesAsRead(userId, body) =>
+
+    val js = parse(new String(body))
+    val messages = ((js \ "mark_as_read") match {
+      case JNothing => println("***" + js); List[String]()
+      case JField(_, JArray(f)) => f.values.map(_.toString)
+      case e => println("### " + e); List[String]()
+    }).map(extractMessageId(userId, _))
+    using (session) {
+      api.bulkMarkAsRead(userId, messages)
+    }
+    self.reply("""{"ok":true}""")
+
   case DeleteMessage(userId, messageId) =>
     using (session) {
       if (api.deleteMessage(userId, messageId))
@@ -361,6 +395,17 @@ class SimpleServiceActor extends Actor {
       else
         self.reply(None)
     }
+  case BulkDeleteMessages(userId, body) =>
+    val js = parse(new String(body))
+    val messages = ((js \ "delete") match {
+      case JNothing => List[String]()
+      case JField(_, JArray(f)) => f.values.map(_.toString)
+      case _ => List[String]()
+    }).map(extractMessageId(userId, _))
+    using (session) {
+      api.bulkDeleteMessages(userId, messages)
+    }
+    self.reply("""{"ok":true}""")
   }
 }
 
@@ -379,5 +424,7 @@ object Commands {
   case class GetMessageBody(userId: Long, messageId: Long) extends Command
   case class MarkMessageAsRead(userId: Long, messageId: Long) extends Command
   case class DeleteMessage(userId: Long, messageId: Long) extends Command
+  case class BulkMarkMessagesAsRead(userId: Long, body: Array[Byte]) extends Command
+  case class BulkDeleteMessages(userId: Long, body: Array[Byte]) extends Command
 }
 
